@@ -1,24 +1,26 @@
+const socket = io();
+
 export async function handleLogin() {
     const user = document.getElementById("loginUser").value;
     const pass = document.getElementById("loginPass").value;
 
     if (!user || !pass) {
-        alert("Por favor, ingresa tus credenciales de piloto.");
+        alert("Ingresa tus credenciales.");
         return;
     }
 
     try {
         const response = await fetch('/api/login', { 
             method: 'POST', 
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user, pass }) 
         });
 
         const data = await response.json();
 
         if (data.status === "success") {
+            socket.emit('registrar-piloto', { user: data.user });
+
             document.getElementById("currentUserName").innerText = data.user.toUpperCase();
             document.getElementById("currentUserPhoto").src = data.img;
 
@@ -30,15 +32,21 @@ export async function handleLogin() {
             document.getElementById("cardDate").innerText = data.date;
 
             document.getElementById("userDisplay").classList.remove("hidden");
+            
             window.showScreen('mainMenu');
         } else {
             alert(data.msg);
         }
     } catch (error) {
-        console.error("Error en la conexión con el servicio web:", error);
-        alert("No se pudo conectar con el servidor de Sky Duel.");
+        console.error("Error en login:", error);
     }
 }
+
+socket.on('actualizar-pilotos', (datos) => {
+    console.log(datos.msg);
+    console.log("Pilotos activos:", datos.lista);
+});
+
 
 export async function handleRegister() {
     const user = document.getElementById("regUser").value;

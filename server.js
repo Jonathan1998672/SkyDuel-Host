@@ -10,7 +10,7 @@ const io = new Server(server);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '/')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -24,15 +24,20 @@ db.connect((err) => {
         console.error('Error conectando a MySQL:', err);
         return;
     }
-    console.log('Servidor Node.js conectado a la base de datos MySQL');
+    console.log('Servidor conectado a MySQL');
 });
+
+let pilotosConectados = {};
 
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     const sql = "SELECT * FROM usuarios WHERE nombre_usuario = ?";
     
     db.query(sql, [user], (err, results) => {
-        if (err) return res.status(500).json({ status: "error", msg: "Error en base de datos" });
+        if (err) {
+            console.error(err); 
+            return res.status(500).json({ status: "error", msg: "Error en base de datos" });
+        }
         
         if (results.length > 0) {
             const usuario = results[0];
@@ -71,16 +76,33 @@ app.post('/api/register', (req, res) => {
     });
 });
 
-// --- MULTIJUGADOR (Socket.io) ---
+
+// WebSocket: Registro de conexión
 io.on('connection', (socket) => {
-    console.log('Un piloto se ha conectado:', socket.id);
+    socket.on('registrar-piloto', (datosPiloto) => {
+        pilotosConectados[socket.id] = {
+            nombre: datosPiloto.user,
+            id: socket.id
+        };
+        
+        // Notificar a todos los clientes
+        io.emit('actualizar-pilotos', {
+            msg: `¡Piloto ${datosPiloto.user} en línea!`,
+            lista: Object.values(pilotosConectados)
+        });
+    });
+
     socket.on('disconnect', () => {
-        console.log('Piloto desconectado');
+        if (pilotosConectados[socket.id]) {
+            const nombre = pilotosConectados[socket.id].nombre;
+            delete pilotosConectados[socket.id];
+            io.emit('actualizar-pilotos', {
+                msg: `El piloto ${nombre} se ha desconectado.`,
+                lista: Object.values(pilotosConectados)
+            });
+        }
     });
 });
 
-// --- INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor Sky Duel corriendo en puerto ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Sky Duel running on port ${PORT}`));
