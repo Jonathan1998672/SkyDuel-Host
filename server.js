@@ -1,108 +1,100 @@
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Sky Duel running on port ${PORT}`));
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
 const mysql = require('mysql2');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// CONFIG
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 🔥 CAMBIA SOLO ESTO SI FALLA
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'u649554040_Pilot',
+    host: '127.0.0.1',
+    user: 'u649554040_Piloto',
     password: 'DszUQcpjYKitDs9?',
-    database: 'u649554040_SkyDuel'
+    database: 'u649554040_SkyDuel_DB'
 });
 
-db.connect((err) => {
+db.connect(err => {
     if (err) {
-        console.error('Error conectando a MySQL:', err);
-        return;
+        console.error("MYSQL ERROR:", err);
+    } else {
+        console.log("✅ MySQL conectado");
     }
-    console.log('Servidor conectado a MySQL');
 });
 
-let pilotosConectados = {};
+// =======================
+// REGISTER
+// =======================
+app.post('/api/register', (req, res) => {
+    const { user, pass } = req.body;
 
+    const sql = "INSERT INTO usuarios (nombre_usuario, contrasena) VALUES (?, ?)";
+
+    db.query(sql, [user, pass], (err) => {
+        if (err) {
+            console.error(err);
+            return res.json({ status: "error", msg: "Error o usuario existente" });
+        }
+
+        res.json({ status: "ok" });
+    });
+});
+
+// =======================
+// LOGIN
+// =======================
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
+
     const sql = "SELECT * FROM usuarios WHERE nombre_usuario = ?";
-    
+
     db.query(sql, [user], (err, results) => {
         if (err) {
-            console.error(err); 
-            return res.status(500).json({ status: "error", msg: "Error en base de datos" });
+            console.error(err);
+            return res.status(500).json({ status: "error" });
         }
-        
-        if (results.length > 0) {
-            const usuario = results[0];
-            if (usuario.contrasena === pass) {
-                res.json({
-                    status: "success",
-                    user: usuario.nombre_usuario,
-                    email: usuario.correo,
-                    img: usuario.ruta_imagen,
-                    rank_race: usuario.rango_carrera,
-                    rank_combat: usuario.rango_combate,
-                    date: usuario.fecha_registro
-                });
-            } else {
-                res.json({ status: "error", msg: "Contraseña incorrecta" });
-            }
-        } else {
-            res.json({ status: "error", msg: "Piloto no encontrado" });
+
+        if (results.length === 0) {
+            return res.json({ status: "error", msg: "No existe" });
         }
+
+        if (results[0].contrasena !== pass) {
+            return res.json({ status: "error", msg: "Contraseña incorrecta" });
+        }
+
+        res.json({ status: "ok", user });
     });
 });
 
-app.post('/api/register', (req, res) => {
-    const { user, email, pass } = req.body;
-    const img_default = 'assets-pilotos/default.png';
-    const sql = "INSERT INTO usuarios (nombre_usuario, correo, contrasena, ruta_imagen) VALUES (?, ?, ?, ?)";
-    
-    db.query(sql, [user, email, pass, img_default], (err, result) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.json({ status: "error", msg: "El piloto o correo ya existe" });
-            }
-            return res.status(500).json({ status: "error", msg: "Error al registrar" });
-        }
-        res.json({ status: "success", msg: "¡Piloto registrado con éxito!" });
-    });
-});
+// =======================
+// SOCKET.IO
+// =======================
+let usuarios = [];
 
-
-// WebSocket: Registro de conexión
 io.on('connection', (socket) => {
-    socket.on('registrar-piloto', (datosPiloto) => {
-        pilotosConectados[socket.id] = {
-            nombre: datosPiloto.user,
-            id: socket.id
-        };
-        
-        // Notificar a todos los clientes
-        io.emit('actualizar-pilotos', {
-            msg: `¡Piloto ${datosPiloto.user} en línea!`,
-            lista: Object.values(pilotosConectados)
-        });
+    console.log("🟢 Conectado:", socket.id);
+
+    socket.on('login', (user) => {
+        usuarios.push(user);
+        io.emit('usuarios', usuarios);
+        console.log("Usuarios:", usuarios);
     });
 
     socket.on('disconnect', () => {
-        if (pilotosConectados[socket.id]) {
-            const nombre = pilotosConectados[socket.id].nombre;
-            delete pilotosConectados[socket.id];
-            io.emit('actualizar-pilotos', {
-                msg: `El piloto ${nombre} se ha desconectado.`,
-                lista: Object.values(pilotosConectados)
-            });
-        }
+        console.log("🔴 Desconectado:", socket.id);
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sky Duel running on port ${PORT}`));
+// =======================
+server.listen(3000, () => {
+    console.log("🚀 Server en puerto 3000");
+});
