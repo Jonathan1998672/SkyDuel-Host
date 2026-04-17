@@ -2,57 +2,41 @@ export async function handleLogin() {
     const user = document.getElementById("loginUser").value;
     const pass = document.getElementById("loginPass").value;
 
-    const formData = new FormData();
-    formData.append('user', user);
-    formData.append('pass', pass);
-
-    const response = await fetch('login.php', { method: 'POST', body: formData });
-    const data = await response.json();
-
-    if (data.status === "success") {
-        document.getElementById("currentUserName").innerText = data.user.toUpperCase();
-        document.getElementById("currentUserPhoto").src = data.img;
-
-        document.getElementById("cardUser").innerText = data.user.toUpperCase();
-        document.getElementById("cardEmail").innerText = data.email;
-        document.getElementById("cardPhoto").src = data.img;
-        document.getElementById("cardRankRace").innerText = data.rank_race;
-        document.getElementById("cardRankCombat").innerText = data.rank_combat;
-        document.getElementById("cardDate").innerText = data.date;
-
-        document.getElementById("userDisplay").classList.remove("hidden");
-        window.showScreen('mainMenu');
-    } else {
-        alert(data.msg);
+    if (!user || !pass) {
+        alert("Por favor, ingresa tus credenciales de piloto.");
+        return;
     }
-}
 
-window.previewImage = function (event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const preview = document.getElementById('registerAvatarPreview');
-            if (preview) {
-                preview.src = e.target.result;
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-};
+    try {
+        const response = await fetch('/api/login', { 
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user, pass }) 
+        });
 
-function resetRegisterForm() {
-    document.getElementById("regUser").value = "";
-    document.getElementById("regEmail").value = "";
-    document.getElementById("regPass").value = "";
-    document.getElementById("regPassConfirm").value = "";
+        const data = await response.json();
 
-    const avatarInput = document.getElementById('avatarInput');
-    if (avatarInput) avatarInput.value = "";
+        if (data.status === "success") {
+            document.getElementById("currentUserName").innerText = data.user.toUpperCase();
+            document.getElementById("currentUserPhoto").src = data.img;
 
-    const preview = document.getElementById('registerAvatarPreview');
-    if (preview) {
-        preview.src = "assets-pilotos/default.png";
+            document.getElementById("cardUser").innerText = data.user.toUpperCase();
+            document.getElementById("cardEmail").innerText = data.email;
+            document.getElementById("cardPhoto").src = data.img;
+            document.getElementById("cardRankRace").innerText = data.rank_race;
+            document.getElementById("cardRankCombat").innerText = data.rank_combat;
+            document.getElementById("cardDate").innerText = data.date;
+
+            document.getElementById("userDisplay").classList.remove("hidden");
+            window.showScreen('mainMenu');
+        } else {
+            alert(data.msg);
+        }
+    } catch (error) {
+        console.error("Error en la conexión con el servicio web:", error);
+        alert("No se pudo conectar con el servidor de Sky Duel.");
     }
 }
 
@@ -85,15 +69,23 @@ export async function handleRegister() {
     formData.append('pass', pass);
     if (avatarFile) formData.append('avatar', avatarFile);
 
-    const response = await fetch('registro.php', { method: 'POST', body: formData });
-    const data = await response.json();
+    try {
+        const response = await fetch('/api/register', { 
+            method: 'POST', 
+            body: formData 
+        });
+        
+        const data = await response.json();
 
-    if (data.status === "success") {
-        alert("¡Piloto " + user + " registrado con éxito!");
-        resetRegisterForm();
-        window.showScreen('authMenu');
-    } else {
-        alert(data.msg);
+        if (data.status === "success") {
+            alert("¡Piloto " + user + " registrado con éxito en la base de datos!");
+            resetRegisterForm();
+            window.showScreen('authMenu');
+        } else {
+            alert(data.msg);
+        }
+    } catch (error) {
+        console.error("Error al registrar piloto:", error);
     }
 }
 
@@ -107,9 +99,30 @@ export function logout() {
     }
 }
 
+window.previewImage = function (event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const preview = document.getElementById('registerAvatarPreview');
+            if (preview) preview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+function resetRegisterForm() {
+    document.getElementById("regUser").value = "";
+    document.getElementById("regEmail").value = "";
+    document.getElementById("regPass").value = "";
+    document.getElementById("regPassConfirm").value = "";
+    const avatarInput = document.getElementById('avatarInput');
+    if (avatarInput) avatarInput.value = "";
+    const preview = document.getElementById('registerAvatarPreview');
+    if (preview) preview.src = "assets-pilotos/default.png";
+}
 
 window.handleLogin = handleLogin;
-window.resetRegisterForm = resetRegisterForm;
 window.handleRegister = handleRegister;
 window.logout = logout;
-window.previewImage = previewImage;
+window.resetRegisterForm = resetRegisterForm;
