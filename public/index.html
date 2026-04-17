@@ -1,28 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 
 <head>
-    <title>Login Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKY DUEL</title>
+    <link rel="icon" type="image/x-icon" href="assets-imagenes/icono.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Keania+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <h2>Registro</h2>
-    <input id="rUser" placeholder="user">
-    <input id="rPass" placeholder="pass">
-    <button onclick="register()">Registrar</button>
+    <div class="background">
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+        <span><img src="assets-imagenes/drone.svg"></span>
+    </div>
 
-    <h2>Login</h2>
-    <input id="lUser" placeholder="user">
-    <input id="lPass" placeholder="pass">
-    <button onclick="login()">Login</button>
+    <div class="main-container">
+        <h1 class="main-title">SKY DUEL</h1>
 
-    <h3>Usuarios conectados:</h3>
-    <ul id="lista"></ul>
+        <div id="login-panel" class="auth-card">
+            <h2>LOGIN</h2>
+            <div class="input-group">
+                <input type="text" id="lUser" placeholder="Usuario" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="lPass" placeholder="Contraseña" required>
+            </div>
+
+            <button class="btn-primary" onclick="login()">ENTRAR</button>
+
+            <p class="switch-auth">
+                ¿No tienes cuenta? <a href="#" onclick="showPanel('register')">Regístrate aquí</a>
+            </p>
+        </div>
+
+        <div id="register-panel" class="auth-card hidden">
+            <h2>REGISTRO</h2>
+            <div class="input-group">
+                <input type="text" id="rUser" placeholder="Usuario" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="rPass" placeholder="Contraseña" required>
+            </div>
+
+            <button class="btn-primary" onclick="register()">CREAR CUENTA</button>
+
+            <p class="switch-auth">
+                ¿Ya tienes cuenta? <a href="#" onclick="showPanel('login')">Inicia sesión</a>
+            </p>
+        </div>
+
+        <div id="menu-panel" class="menu-container hidden">
+            <div class="online-list">
+                <h3>PILOTOS ONLINE</h3>
+                <ul id="lista-usuarios"></ul>
+            </div>
+
+            <div id="main-buttons" class="central-buttons">
+                <button class="btn-menu" onclick="showSubMenu('play')">JUGAR</button>
+                <button class="btn-menu">CONFIGURACIÓN</button>
+                <button class="btn-menu">PUNTUACIONES</button>
+            </div>
+
+            <div id="play-submenu" class="central-buttons hidden">
+                <button class="btn-menu">CREAR SALA</button>
+                <button class="btn-menu">UNIRSE A SALA</button>
+                <button class="btn-small" onclick="showSubMenu('main')">VOLVER</button>
+            </div>
+
+            <div class="user-status-box">
+                <span id="connected-user-name">Usuario</span>
+                <span class="status-dot"></span>
+            </div>
+        </div>
+
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
-
 </body>
 
 </html>

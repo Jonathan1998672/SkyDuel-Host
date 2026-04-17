@@ -1,6 +1,3 @@
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sky Duel running on port ${PORT}`));
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -11,11 +8,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// 🔥 IMPORTANTE (Hostinger)
+const PORT = process.env.PORT || 3000;
+
 // CONFIG
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔥 CAMBIA SOLO ESTO SI FALLA
+// DB
 const db = mysql.createConnection({
     host: '127.0.0.1',
     user: 'u649554040_Piloto',
@@ -31,9 +31,7 @@ db.connect(err => {
     }
 });
 
-// =======================
 // REGISTER
-// =======================
 app.post('/api/register', (req, res) => {
     const { user, pass } = req.body;
 
@@ -49,9 +47,7 @@ app.post('/api/register', (req, res) => {
     });
 });
 
-// =======================
 // LOGIN
-// =======================
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
 
@@ -75,26 +71,30 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// =======================
-// SOCKET.IO
-// =======================
-let usuarios = [];
+// SOCKET
+let usuariosConectados = {};
 
 io.on('connection', (socket) => {
     console.log("🟢 Conectado:", socket.id);
 
     socket.on('login', (user) => {
-        usuarios.push(user);
-        io.emit('usuarios', usuarios);
-        console.log("Usuarios:", usuarios);
+        if (usuariosConectados[user]) {
+            const oldSocketId = usuariosConectados[user];
+            io.to(oldSocketId).emit('forcedLogout', 'Se ha iniciado sesión en otro dispositivo.');
+            console.log(`⚠️ Desconectando sesión previa de: ${user}`);
+        }
+
+        socket.username = user; 
+        usuariosConectados[user] = socket.id;
+        
+        io.emit('usuarios', Object.keys(usuariosConectados));
     });
 
     socket.on('disconnect', () => {
-        console.log("🔴 Desconectado:", socket.id);
+        if (socket.username) {
+            delete usuariosConectados[socket.username];
+            io.emit('usuarios', Object.keys(usuariosConectados));
+            console.log(`🔴 ${socket.username} salió.`);
+        }
     });
-});
-
-// =======================
-server.listen(3000, () => {
-    console.log("🚀 Server en puerto 3000");
 });
